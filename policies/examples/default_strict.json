@@ -1,0 +1,34 @@
+{
+  "policy_id": "POL-STRICT-PROD-001",
+  "name": "Production Strict Policy Profile",
+  "version": "1.0",
+  "rules": [
+    {
+      "id": "RULE-001",
+      "name": "Block Sensitive Files",
+      "resource_pattern": "(\\.env|id_rsa|\\.aws/credentials|secrets\\.json)",
+      "action_pattern": "(READ|WRITE|DELETE|EXECUTE)",
+      "decision": "BLOCK",
+      "risk_score": 95,
+      "reason": "Direct access to sensitive credentials and environment files is prohibited."
+    },
+    {
+      "id": "RULE-002",
+      "name": "Block System Destruction",
+      "resource_pattern": ".*",
+      "action_pattern": "(rm\\s+-rf\\s+/|drop\\s+database|format\\s+c:)",
+      "decision": "BLOCK",
+      "risk_score": 100,
+      "reason": "Destructive system commands are blocked."
+    },
+    {
+      "id": "RULE-003",
+      "name": "Allow Standard Workspace Read",
+      "resource_pattern": "^(\\./|tests/|src/|app/|docs/|[a-zA-Z0-9_\\-\\./]+\\.(py|ts|tsx|js|md|json|txt))$",
+      "action_pattern": "^READ$",
+      "decision": "ALLOW",
+      "risk_score": 10,
+      "reason": "Standard workspace file read is allowed."
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "policy_id": "POL-DEV-SANDBOX-002",
+  "name": "Developer Sandbox Policy Profile",
+  "version": "1.0",
+  "rules": [
+    {
+      "id": "RULE-SANDBOX-001",
+      "name": "Block Production Keys Only",
+      "resource_pattern": "(prod_key\\.pem|master_secret)",
+      "action_pattern": "(READ|WRITE|DELETE)",
+      "decision": "BLOCK",
+      "risk_score": 90,
+      "reason": "Production keys cannot be accessed in developer sandbox."
+    },
+    {
+      "id": "RULE-SANDBOX-002",
+      "name": "Allow Local Development Operations",
+      "resource_pattern": ".*",
+      "action_pattern": "(READ|WRITE|EXECUTE)",
+      "decision": "ALLOW",
+      "risk_score": 20,
+      "reason": "Permitted in developer sandbox mode."
+    }
+  ]
+}

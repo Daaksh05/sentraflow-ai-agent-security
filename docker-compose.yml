@@ -1,0 +1,88 @@
+services:
+  # SentreFlow FastAPI Security Kernel & Control Plane
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sentraflow-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql+asyncpg://sentraflow_user:sentraflow_password@postgres:5432/sentraflow_db
+      - REDIS_URL=redis://redis:6379/0
+      - AI_MODEL_PROVIDER=${AI_MODEL_PROVIDER:-mock}
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY:-}
+      - NVIDIA_MODEL=${NVIDIA_MODEL:-nvidia/nemotron-4-340b-instruct}
+      - NVIDIA_BASE_URL=${NVIDIA_BASE_URL:-https://integrate.api.nvidia.com/v1}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sentraflow-network
+
+  # SentreFlow Next.js Real-Time Control Center & Dashboard
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sentraflow-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - sentraflow-network
+
+  # PostgreSQL Database for Audit Logs & Security Decisions
+  postgres:
+    image: postgres:16-alpine
+    container_name: sentraflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sentraflow_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sentraflow_password}
+      POSTGRES_DB: ${POSTGRES_DB:-sentraflow_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentraflow_user -d sentraflow_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sentraflow-network
+
+  # Redis for Event Pipeline and High-Speed State Tracking
+  redis:
+    image: redis:7-alpine
+    container_name: sentraflow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sentraflow-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  sentraflow-network:
+    driver: bridge
