@@ -1,4 +1,4 @@
-"""Structured logging configuration for SentreFlow security events."""
+"""Structured logging configuration for SentraFlow security events."""
 
 import json
 import logging

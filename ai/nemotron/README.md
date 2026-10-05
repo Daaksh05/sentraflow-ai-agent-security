@@ -1,6 +1,6 @@
 # NVIDIA Nemotron Integration Guide
 
-SentreFlow leverages NVIDIA Nemotron models (such as `nvidia/nemotron-4-340b-instruct` or fine-tuned NIM instances) for deep semantic reasoning over agent operations.
+SentraFlow leverages NVIDIA Nemotron models (such as `nvidia/nemotron-4-340b-instruct` or fine-tuned NIM instances) for deep semantic reasoning over agent operations.
 
 ## Capabilities
 
@@ -20,7 +20,7 @@ NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
 ```
 
 ### 2. Self-Hosted NVIDIA NIM Container
-Deploy an on-premise NIM container and point SentreFlow to it:
+Deploy an on-premise NIM container and point SentraFlow to it:
 ```bash
 AI_MODEL_PROVIDER=nemotron_nim
 NVIDIA_BASE_URL=http://localhost:8000/v1

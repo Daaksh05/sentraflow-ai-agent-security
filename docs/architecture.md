@@ -1,6 +1,6 @@
-# SentreFlow Architecture Overview
+# SentraFlow Architecture Overview
 
-SentreFlow is a real-time security and control layer for autonomous AI agents. It intercepts actions requested by an AI agent before they reach external systems, tools, APIs, or infrastructure.
+SentraFlow is a real-time security and control layer for autonomous AI agents. It intercepts actions requested by an AI agent before they reach external systems, tools, APIs, or infrastructure.
 
 ## System Topology
 
@@ -18,7 +18,7 @@ SentreFlow is a real-time security and control layer for autonomous AI agents. I
                               | Intercepted Action Request
                               v
 +=============================================================+
-|                      SentreFlow Engine                      |
+|                      SentraFlow Engine                      |
 |                                                             |
 |   +---------------------+        +----------------------+   |
 |   |    Policy Engine    |        | Intent & Context     |   |

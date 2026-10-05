@@ -1,4 +1,4 @@
-# Backend Dockerfile for SentreFlow
+# Backend Dockerfile for SentraFlow
 FROM python:3.11-slim
 
 WORKDIR /app

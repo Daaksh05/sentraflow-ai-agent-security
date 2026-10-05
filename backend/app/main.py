@@ -1,4 +1,4 @@
-"""Main FastAPI application entrypoint for SentreFlow."""
+"""Main FastAPI application entrypoint for SentraFlow."""
 
 from contextlib import asynccontextmanager
 import time

@@ -1,8 +1,8 @@
-# SentreFlow — AI Agent Security & Control Platform
+# SentraFlow — AI Agent Security & Control Platform
 
 > **Real-time security layer sitting between autonomous AI agents and external tools, APIs, and execution systems.**
 
-SentreFlow monitors actions requested by autonomous AI agents, evaluates intent and security risk using deterministic policies and **NVIDIA Nemotron** reasoning, and issues an **ALLOW** or **BLOCK** verdict with auditable justification.
+SentraFlow monitors actions requested by autonomous AI agents, evaluates intent and security risk using deterministic policies and **NVIDIA Nemotron** reasoning, and issues an **ALLOW** or **BLOCK** verdict with auditable justification.
 
 ---
 
@@ -15,7 +15,7 @@ Autonomous AI Agent
       ↓
 Agent decides to perform an action
       ↓
-SentreFlow Security Layer
+SentraFlow Security Layer
       ├── Policy Engine (Deterministic Rules)
       ├── Intent & Context Analyzer (NVIDIA Nemotron)
       ├── Behavior Monitor

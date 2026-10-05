@@ -1,15 +1,15 @@
-# SentreFlow AI & Reasoning Layer
+# SentraFlow AI & Reasoning Layer
 
-This directory hosts prompt engineering templates, evaluation criteria, and model configuration specifications for SentreFlow's AI Reasoning engine.
+This directory hosts prompt engineering templates, evaluation criteria, and model configuration specifications for SentraFlow's AI Reasoning engine.
 
 ## Architecture Overview
 
-SentreFlow utilizes **NVIDIA Nemotron** to analyze the semantic intent, risk indicators, and contextual legitimacy of autonomous AI agent actions.
+SentraFlow utilizes **NVIDIA Nemotron** to analyze the semantic intent, risk indicators, and contextual legitimacy of autonomous AI agent actions.
 
 ```
 Agent Action + Context
          ↓
-SentreFlow AI Reasoner (NVIDIA Nemotron NIM / API)
+SentraFlow AI Reasoner (NVIDIA Nemotron NIM / API)
          ↓
 - Intent Understanding (What is the agent actually attempting to do?)
 - Confidence Score (0.0 - 1.0)
@@ -17,7 +17,7 @@ SentreFlow AI Reasoner (NVIDIA Nemotron NIM / API)
 - Risk Score (0 - 100)
 - Semantic Rationale
          ↓
-Passed into SentreFlow Decision Engine
+Passed into SentraFlow Decision Engine
 ```
 
 ## Decoupled Model Provider Pattern

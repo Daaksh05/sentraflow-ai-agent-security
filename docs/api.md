@@ -1,4 +1,4 @@
-# SentreFlow API Specification
+# SentraFlow API Specification
 
 Base URL: `http://localhost:8000`  
 API Prefix: `/api/v1`

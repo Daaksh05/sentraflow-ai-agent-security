@@ -1,4 +1,4 @@
-# Frontend Dockerfile for SentreFlow Next.js Dashboard
+# Frontend Dockerfile for SentraFlow Next.js Dashboard
 FROM node:20-alpine AS base
 
 # Step 1: Install dependencies

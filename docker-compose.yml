@@ -1,5 +1,5 @@
 services:
-  # SentreFlow FastAPI Security Kernel & Control Plane
+  # SentraFlow FastAPI Security Kernel & Control Plane
   backend:
     build:
       context: ./backend
@@ -25,7 +25,7 @@ services:
     networks:
       - sentraflow-network
 
-  # SentreFlow Next.js Real-Time Control Center & Dashboard
+  # SentraFlow Next.js Real-Time Control Center & Dashboard
   frontend:
     build:
       context: ./frontend

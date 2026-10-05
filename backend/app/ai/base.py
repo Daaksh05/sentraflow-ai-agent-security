@@ -1,4 +1,4 @@
-"""Abstract Model Provider interface for SentreFlow AI reasoning."""
+"""Abstract Model Provider interface for SentraFlow AI reasoning."""
 
 from abc import ABC, abstractmethod
 from typing import Optional

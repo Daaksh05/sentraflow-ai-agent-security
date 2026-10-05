@@ -1,4 +1,4 @@
-"""Core configuration for SentreFlow backend application."""
+"""Core configuration for SentraFlow backend application."""
 
 import os
 from typing import List, Union
@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     )
 
     # Server & Environment
-    PROJECT_NAME: str = "SentreFlow"
+    PROJECT_NAME: str = "SentraFlow"
     VERSION: str = "0.1.0"
     ENVIRONMENT: str = Field(default="development", description="Execution environment (development, staging, production)")
     LOG_LEVEL: str = Field(default="INFO", description="Application log level")

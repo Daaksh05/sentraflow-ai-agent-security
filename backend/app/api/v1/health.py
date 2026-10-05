@@ -19,5 +19,5 @@ class HealthResponse(BaseModel):
 
 @router.get("/health", response_model=HealthResponse, summary="API v1 Health Check")
 async def health_check_v1() -> HealthResponse:
-    """Returns the operational status of the SentreFlow backend service."""
+    """Returns the operational status of the SentraFlow backend service."""
     return HealthResponse()

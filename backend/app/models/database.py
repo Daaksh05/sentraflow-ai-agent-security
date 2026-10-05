@@ -1,4 +1,4 @@
-"""SQLAlchemy database models foundation for SentreFlow."""
+"""SQLAlchemy database models foundation for SentraFlow."""
 
 from datetime import datetime, timezone
 from sqlalchemy import JSON, Column, DateTime, Integer, String, Text

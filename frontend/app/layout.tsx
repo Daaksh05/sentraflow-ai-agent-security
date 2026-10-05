@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SentreFlow — AI Agent Security & Control Platform",
+  title: "SentraFlow — AI Agent Security & Control Platform",
   description: "Real-time security and control layer for autonomous AI agents powered by deterministic policies and NVIDIA Nemotron reasoning.",
 };
 

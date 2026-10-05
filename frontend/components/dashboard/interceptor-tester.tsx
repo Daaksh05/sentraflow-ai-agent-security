@@ -169,7 +169,7 @@ export function InterceptorTester() {
               {loading ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Evaluating through SentreFlow...</span>
+                  <span>Evaluating through SentraFlow...</span>
                 </>
               ) : (
                 <>
@@ -188,7 +188,7 @@ export function InterceptorTester() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-base font-semibold text-white">SentreFlow Decision Output</h2>
+                <h2 className="text-base font-semibold text-white">SentraFlow Decision Output</h2>
                 <p className="text-xs text-slate-400">
                   Real-time policy enforcement and NVIDIA Nemotron intent reasoning.
                 </p>
@@ -324,7 +324,7 @@ export function InterceptorTester() {
           </div>
 
           <div className="mt-4 pt-4 border-t border-slate-800/60 text-[11px] text-slate-500 flex items-center justify-between">
-            <span>SentreFlow Kernel v0.1.0</span>
+            <span>SentraFlow Kernel v0.1.0</span>
             <span>Deterministic Policy Boundary + NVIDIA NIM Layer</span>
           </div>
         </div>

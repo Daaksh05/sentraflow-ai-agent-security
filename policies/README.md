@@ -1,6 +1,6 @@
-# SentreFlow Security Policies
+# SentraFlow Security Policies
 
-SentreFlow enforces deterministic security policies alongside AI intent analysis.
+SentraFlow enforces deterministic security policies alongside AI intent analysis.
 Policies establish non-negotiable boundaries that block unsafe operations regardless of LLM reasoning.
 
 ## Policy Hierarchy

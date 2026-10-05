@@ -47,7 +47,7 @@ export default function Home() {
             </div>
 
             <div className="p-3 rounded-xl bg-sentra-950/60 border border-sentra-800/80 text-center ring-1 ring-sentra-500/30">
-              <div className="text-sentra-400 font-mono text-[10px] font-bold">Step 2 • SentreFlow</div>
+              <div className="text-sentra-400 font-mono text-[10px] font-bold">Step 2 • SentraFlow</div>
               <div className="font-bold text-white mt-0.5">Policy + Nemotron</div>
               <div className="text-[11px] text-sentra-300/80">Deterministic evaluation</div>
             </div>
@@ -73,7 +73,7 @@ export default function Home() {
 
       <footer className="border-t border-slate-800/80 py-4 px-6 mt-12 bg-slate-950/60 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div>SentreFlow — AI Agent Security & Control Platform • MIT License</div>
+          <div>SentraFlow — AI Agent Security & Control Platform • MIT License</div>
           <div className="flex items-center space-x-4">
             <span>FastAPI Backend</span>
             <span>Next.js Dashboard</span>

@@ -1,4 +1,4 @@
-"""Deterministic Policy Engine foundation for SentreFlow."""
+"""Deterministic Policy Engine foundation for SentraFlow."""
 
 import logging
 import re

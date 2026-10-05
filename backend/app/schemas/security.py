@@ -16,7 +16,7 @@ class DecisionOutcome(str, Enum):
 
 
 class PolicyDecision(BaseModel):
-    """Deterministic evaluation outcome from the SentreFlow Policy Engine."""
+    """Deterministic evaluation outcome from the SentraFlow Policy Engine."""
     decision: DecisionOutcome = Field(..., description="ALLOW or BLOCK decision based on static policy rules")
     reason: str = Field(..., description="Explanation of why the rule passed or failed")
     risk_score: int = Field(..., ge=0, le=100, description="Risk score calculated by policy engine (0-100)")

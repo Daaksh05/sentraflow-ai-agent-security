@@ -1,4 +1,4 @@
-"""Action Interceptor interface and execution pipeline for SentreFlow."""
+"""Action Interceptor interface and execution pipeline for SentraFlow."""
 
 from abc import ABC, abstractmethod
 import logging

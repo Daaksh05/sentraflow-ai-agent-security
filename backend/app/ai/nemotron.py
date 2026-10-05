@@ -76,7 +76,7 @@ class NemotronProvider(ModelProvider):
 
     def _build_system_prompt(self) -> str:
         return (
-            "You are the SentreFlow AI Security Analysis Engine powered by NVIDIA Nemotron.\n"
+            "You are the SentraFlow AI Security Analysis Engine powered by NVIDIA Nemotron.\n"
             "Your task is to analyze an autonomous AI agent's requested action, task context, and target resource.\n"
             "Evaluate intent alignment, potential security risks, credential exfiltration, prompt injection, or unauthorized escalation.\n"
             "Output your analysis strictly in JSON format matching the schema:\n"

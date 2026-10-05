@@ -33,7 +33,7 @@ export function Navbar() {
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-bold text-xl tracking-tight text-white">SentreFlow</span>
+              <span className="font-bold text-xl tracking-tight text-white">SentraFlow</span>
               <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-sentra-500/10 text-sentra-400 border border-sentra-500/20">
                 Security Layer
               </span>
