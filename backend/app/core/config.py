@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     PORT: int = 8000
     API_V1_PREFIX: str = "/api/v1"
 
+    # Enforcement & Security Mode ('ENFORCE' or 'AUDIT_ONLY')
+    ENFORCEMENT_MODE: str = Field(default="ENFORCE", description="Interception mode: 'ENFORCE' or 'AUDIT_ONLY'")
+    ACTIVE_POLICY_PROFILE: str = Field(default="default_strict", description="Default policy profile identifier or path")
+
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 

@@ -30,6 +30,23 @@ async def test_analyze_endpoint_contract_allow(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_analyze_endpoint_allows_standard_source_read(client: AsyncClient):
+    """Test analyzing standard source code read returns ALLOW decision."""
+    payload = {
+        "agent_id": "agent-dev-01",
+        "task": "Refactor router endpoints",
+        "action": "READ",
+        "resource": "./src/main.py",
+    }
+
+    response = await client.post("/api/v1/analyze", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["decision"] == "ALLOW"
+    assert data["risk_score"] <= 20
+
+
+@pytest.mark.asyncio
 async def test_analyze_endpoint_blocks_sensitive_file(client: AsyncClient):
     """Test analyzing an action targeting credentials returns BLOCK decision."""
     payload = {
@@ -50,6 +67,24 @@ async def test_analyze_endpoint_blocks_sensitive_file(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_analyze_endpoint_blocks_aws_credentials(client: AsyncClient):
+    """Test analyzing an action targeting ~/.aws/credentials returns BLOCK decision."""
+    payload = {
+        "agent_id": "agent-exfil-008",
+        "task": "Deploy cloud infrastructure",
+        "action": "READ",
+        "resource": "~/.aws/credentials",
+    }
+
+    response = await client.post("/api/v1/analyze", json=payload)
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["decision"] == "BLOCK"
+    assert data["risk_score"] >= 90
+
+
+@pytest.mark.asyncio
 async def test_analyze_endpoint_blocks_destructive_command(client: AsyncClient):
     """Test analyzing a destructive command returns BLOCK decision."""
     payload = {
@@ -66,6 +101,41 @@ async def test_analyze_endpoint_blocks_destructive_command(client: AsyncClient):
     data = response.json()
     assert data["decision"] == "BLOCK"
     assert data["risk_score"] >= 90
+
+
+@pytest.mark.asyncio
+async def test_analyze_endpoint_with_rich_action_context(client: AsyncClient):
+    """Test analyzing an action with structured ActionContext payload."""
+    payload = {
+        "agent_id": "agent-coder-01",
+        "task": "Improve test coverage",
+        "action": "READ",
+        "resource": "./tests/test_analyze.py",
+        "action_context": {
+            "agent_id": "agent-coder-01",
+            "task": "Improve test coverage",
+            "requested_action": "READ",
+            "target_resource": "./tests/test_analyze.py",
+            "session_id": "sess-9988",
+            "permissions": ["code:read", "test:execute"],
+            "previous_actions": [
+                {
+                    "action": "READ",
+                    "resource": "pytest.ini",
+                    "decision": "ALLOW",
+                }
+            ],
+            "environment_variables": {
+                "STAGE": "test",
+            },
+        },
+    }
+
+    response = await client.post("/api/v1/analyze", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["decision"] == "ALLOW"
+    assert data["risk_score"] < 50
 
 
 @pytest.mark.asyncio

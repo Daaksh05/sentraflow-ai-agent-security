@@ -15,6 +15,12 @@ class DecisionOutcome(str, Enum):
     ESCALATE = "ESCALATE"
 
 
+class EnforcementMode(str, Enum):
+    """Execution mode for the SentraFlow security interceptor."""
+    ENFORCE = "ENFORCE"
+    AUDIT_ONLY = "AUDIT_ONLY"
+
+
 class PolicyDecision(BaseModel):
     """Deterministic evaluation outcome from the SentraFlow Policy Engine."""
     decision: DecisionOutcome = Field(..., description="ALLOW or BLOCK decision based on static policy rules")
@@ -43,9 +49,23 @@ class SecurityDecision(BaseModel):
     intent: str = Field(..., description="Synthesized understanding of the agent's intent", examples=["Read test file to diagnose failing tests"])
     reason: str = Field(..., description="Auditable justification for the final decision", examples=["Action is within the configured workspace policy"])
     analysis_source: str = Field(default="placeholder", description="Source of the security evaluation (e.g., 'placeholder', 'policy+nemotron', 'policy_only')", examples=["placeholder"])
+    enforcement_mode: str = Field(default="ENFORCE", description="Active enforcement mode when evaluated ('ENFORCE' or 'AUDIT_ONLY')")
     
     # Detailed sub-evaluation metadata
     request_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Traceable unique identifier for the evaluation event")
     policy_decision: Optional[PolicyDecision] = Field(default=None, description="Underlying policy engine decision")
     intent_analysis: Optional[IntentAnalysis] = Field(default=None, description="Underlying AI intent analysis")
     evaluated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Evaluation timestamp")
+
+
+class BatchSecurityDecisionResponse(BaseModel):
+    """Batch evaluation response covering multiple intercepted agent actions."""
+    overall_decision: DecisionOutcome = Field(..., description="Aggregate decision: BLOCK if any action is blocked, else ALLOW")
+    total_actions: int = Field(..., description="Total count of analyzed actions")
+    allowed_count: int = Field(..., description="Count of permitted actions")
+    blocked_count: int = Field(..., description="Count of blocked actions")
+    highest_risk_score: int = Field(..., ge=0, le=100, description="Highest risk score observed across all actions")
+    decisions: List[SecurityDecision] = Field(..., description="Individual decisions for each submitted action in order")
+    blocked_action_index: Optional[int] = Field(default=None, description="Index of the first blocked action, if any")
+    enforcement_mode: str = Field(default="ENFORCE", description="Enforcement mode used during batch analysis")
+    evaluated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Batch evaluation timestamp")

@@ -5,7 +5,8 @@ pydantic>=2.9.0
 pydantic-settings>=2.5.0
 
 # Database & State Store
-sqlalchemy>=2.0.35
+sqlalchemy[asyncio]>=2.0.35
+greenlet>=3.0.0
 asyncpg>=0.29.0
 redis>=5.1.0
 
