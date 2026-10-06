@@ -16,7 +16,9 @@ from app.schemas.security import (
     BatchSecurityDecisionResponse,
     DecisionOutcome,
     EnforcementMode,
+    RiskLevel,
     SecurityDecision,
+    calculate_risk_level,
 )
 from app.security.policy_engine import PolicyEngine
 
@@ -77,24 +79,40 @@ class DefaultActionInterceptor(ActionInterceptor):
         intent_analysis = None
         if self.model_provider:
             try:
-                intent_analysis = await self.model_provider.analyze_intent(action, effective_context)
+                intent_analysis = await self.model_provider.analyze_intent(
+                    action=action,
+                    context=effective_context,
+                    policy_decision=policy_decision,
+                    enforcement_mode=self.enforcement_mode,
+                )
             except Exception as exc:
                 logger.error(f"Error during AI intent analysis: {exc}", exc_info=True)
 
-        # Step 3: Combine into Final Security Decision
-        # Determine natural outcome based on policy & AI reasoning
+        # Step 3: Combine into Final Security Decision with Strict Precedence
+        # Rule 1: Deterministic policy rule BLOCK is absolute (fail-secure boundary)
         is_policy_blocked = policy_decision.decision == DecisionOutcome.BLOCK
-        is_ai_blocked = intent_analysis is not None and intent_analysis.risk_score >= 80
+        
+        # Rule 2: Nemotron contextual risk trigger (risk >= 80 or CRITICAL risk level)
+        is_ai_blocked = (
+            intent_analysis is not None
+            and (
+                intent_analysis.risk_score >= 80
+                or intent_analysis.risk_level == RiskLevel.CRITICAL
+                or (intent_analysis.task_relevance < 0.20 and intent_analysis.risk_score >= 70)
+            )
+        )
 
         if is_policy_blocked:
             natural_outcome = DecisionOutcome.BLOCK
             final_risk = policy_decision.risk_score
+            if intent_analysis and intent_analysis.risk_score > final_risk:
+                final_risk = intent_analysis.risk_score
             final_reason = policy_decision.reason
-            source = "policy_engine"
+            source = "policy_engine" if not intent_analysis else f"policy+{intent_analysis.model_provider}"
         elif is_ai_blocked:
             natural_outcome = DecisionOutcome.BLOCK
             final_risk = intent_analysis.risk_score
-            final_reason = f"AI risk threshold exceeded: {intent_analysis.explanation}"
+            final_reason = f"Contextual AI risk detected: {intent_analysis.explanation}"
             source = f"policy+{intent_analysis.model_provider}"
         else:
             natural_outcome = DecisionOutcome.ALLOW
@@ -102,7 +120,11 @@ class DefaultActionInterceptor(ActionInterceptor):
                 policy_decision.risk_score,
                 intent_analysis.risk_score if intent_analysis else 12,
             )
-            final_reason = policy_decision.reason
+            final_reason = (
+                intent_analysis.explanation
+                if intent_analysis and intent_analysis.risk_score > policy_decision.risk_score
+                else policy_decision.reason
+            )
             source = f"policy+{intent_analysis.model_provider}" if intent_analysis else "placeholder"
 
         # Apply Enforcement Mode handling
@@ -126,6 +148,7 @@ class DefaultActionInterceptor(ActionInterceptor):
         decision = SecurityDecision(
             decision=final_outcome,
             risk_score=final_risk,
+            risk_level=calculate_risk_level(final_risk),
             intent=intent_summary,
             reason=final_reason,
             analysis_source=source,
@@ -147,6 +170,8 @@ class DefaultActionInterceptor(ActionInterceptor):
             extra_context={
                 "task": action.task,
                 "analysis_source": decision.analysis_source,
+                "risk_level": decision.risk_level.value,
+                "task_relevance": intent_analysis.task_relevance if intent_analysis else None,
                 "enforcement_mode": self.enforcement_mode,
                 "natural_outcome": natural_outcome.value,
             },

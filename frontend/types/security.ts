@@ -12,6 +12,8 @@ export type DecisionOutcome = "ALLOW" | "BLOCK" | "REQUIRE_APPROVAL" | "ESCALATE
 
 export type EnforcementMode = "ENFORCE" | "AUDIT_ONLY";
 
+export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
 export interface PreviousAction {
   action: string;
   resource: string;
@@ -54,10 +56,13 @@ export interface PolicyDecision {
 
 export interface IntentAnalysis {
   detected_intent: string;
+  task_relevance?: number;
   confidence: number;
   risk_indicators: string[];
   risk_score: number;
+  risk_level?: RiskLevel;
   explanation: string;
+  recommended_action?: DecisionOutcome;
   model_provider: string;
   model_name?: string;
 }
@@ -65,6 +70,7 @@ export interface IntentAnalysis {
 export interface SecurityDecision {
   decision: DecisionOutcome;
   risk_score: number;
+  risk_level?: RiskLevel;
   intent: string;
   reason: string;
   analysis_source: string;

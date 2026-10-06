@@ -21,6 +21,25 @@ class EnforcementMode(str, Enum):
     AUDIT_ONLY = "AUDIT_ONLY"
 
 
+class RiskLevel(str, Enum):
+    """Categorical risk classification levels."""
+    LOW = "LOW"            # 0 - 20
+    MEDIUM = "MEDIUM"      # 21 - 50
+    HIGH = "HIGH"          # 51 - 80
+    CRITICAL = "CRITICAL"  # 81 - 100
+
+
+def calculate_risk_level(score: int) -> RiskLevel:
+    """Derives categorical RiskLevel from numerical risk score (0-100)."""
+    if score <= 20:
+        return RiskLevel.LOW
+    elif score <= 50:
+        return RiskLevel.MEDIUM
+    elif score <= 80:
+        return RiskLevel.HIGH
+    return RiskLevel.CRITICAL
+
+
 class PolicyDecision(BaseModel):
     """Deterministic evaluation outcome from the SentraFlow Policy Engine."""
     decision: DecisionOutcome = Field(..., description="ALLOW or BLOCK decision based on static policy rules")
@@ -34,28 +53,46 @@ class PolicyDecision(BaseModel):
 class IntentAnalysis(BaseModel):
     """Semantic intent evaluation and risk classification produced by AI (e.g. NVIDIA Nemotron)."""
     detected_intent: str = Field(..., description="Understood agent intent extracted from prompt, context, and action")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Model confidence in its intent understanding (0.0 - 1.0)")
-    risk_indicators: List[str] = Field(default_factory=list, description="Specific risk flags identified (e.g., credential_access, destructive_write)")
+    task_relevance: float = Field(default=1.0, ge=0.0, le=1.0, description="Relevance of the requested action to the assigned task (0.0 to 1.0)")
     risk_score: int = Field(default=0, ge=0, le=100, description="AI estimated risk score (0-100)")
+    risk_level: RiskLevel = Field(default=RiskLevel.LOW, description="Categorical risk tier: LOW, MEDIUM, HIGH, CRITICAL")
+    confidence: float = Field(default=0.9, ge=0.0, le=1.0, description="Model confidence in its analysis (0.0 - 1.0)")
+    risk_indicators: List[str] = Field(default_factory=list, description="Specific risk flags identified (e.g., credential_access, task_drift, prompt_injection)")
     explanation: str = Field(..., description="Detailed semantic rationale for the intent and risk assessment")
+    recommended_action: DecisionOutcome = Field(default=DecisionOutcome.ALLOW, description="AI model's advisory recommendation (ALLOW, BLOCK, REQUIRE_APPROVAL)")
     model_provider: str = Field(default="nemotron", description="Model provider identifier")
     model_name: Optional[str] = Field(default=None, description="Specific model identifier used")
+
+    # Property alias for reasoning
+    @property
+    def intent(self) -> str:
+        return self.detected_intent
+
+    @property
+    def reasoning(self) -> str:
+        return self.explanation
 
 
 class SecurityDecision(BaseModel):
     """Unified security decision combining deterministic policy rules and AI intent analysis."""
     decision: DecisionOutcome = Field(..., description="Final security outcome: ALLOW or BLOCK", examples=["ALLOW"])
     risk_score: int = Field(..., ge=0, le=100, description="Composite risk score from 0 (safe) to 100 (critical)", examples=[12])
+    risk_level: RiskLevel = Field(default=RiskLevel.LOW, description="Overall categorical risk level")
     intent: str = Field(..., description="Synthesized understanding of the agent's intent", examples=["Read test file to diagnose failing tests"])
     reason: str = Field(..., description="Auditable justification for the final decision", examples=["Action is within the configured workspace policy"])
-    analysis_source: str = Field(default="placeholder", description="Source of the security evaluation (e.g., 'placeholder', 'policy+nemotron', 'policy_only')", examples=["placeholder"])
+    analysis_source: str = Field(default="placeholder", description="Source of the security evaluation (e.g., 'policy_engine', 'policy+nemotron', 'mock')", examples=["policy+nemotron"])
     enforcement_mode: str = Field(default="ENFORCE", description="Active enforcement mode when evaluated ('ENFORCE' or 'AUDIT_ONLY')")
     
     # Detailed sub-evaluation metadata
     request_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Traceable unique identifier for the evaluation event")
     policy_decision: Optional[PolicyDecision] = Field(default=None, description="Underlying policy engine decision")
-    intent_analysis: Optional[IntentAnalysis] = Field(default=None, description="Underlying AI intent analysis")
+    intent_analysis: Optional[IntentAnalysis] = Field(default=None, description="Underlying AI intent analysis from NVIDIA Nemotron")
     evaluated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Evaluation timestamp")
+
+    def model_post_init(self, __context) -> None:
+        """Automatically synchronizes risk_level with risk_score if not explicitly provided."""
+        if self.risk_level == RiskLevel.LOW and self.risk_score > 20:
+            object.__setattr__(self, "risk_level", calculate_risk_level(self.risk_score))
 
 
 class BatchSecurityDecisionResponse(BaseModel):
