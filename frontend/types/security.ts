@@ -67,6 +67,39 @@ export interface IntentAnalysis {
   model_name?: string;
 }
 
+export type TrajectoryClassification =
+  | "NORMAL"
+  | "SUSPICIOUS"
+  | "ESCALATING"
+  | "CREDENTIAL_ACCESS"
+  | "DATA_EXFILTRATION"
+  | "TASK_DRIFT"
+  | "REPEATED_ATTACK"
+  | "MIXED";
+
+export interface TrajectoryStep {
+  step_index: number;
+  action: string;
+  resource: string;
+  action_type?: string;
+  decision?: DecisionOutcome;
+  risk_score?: number;
+  risk_level?: RiskLevel;
+  task_relevance?: number;
+  timestamp?: string;
+}
+
+export interface BehaviorAnalysis {
+  session_id: string;
+  behavior_risk_score: number;
+  behavior_risk_level: RiskLevel;
+  trajectory_classification: TrajectoryClassification;
+  behavior_indicators: string[];
+  explanation: string;
+  action_count: number;
+  trajectory?: TrajectoryStep[];
+}
+
 export interface SecurityDecision {
   decision: DecisionOutcome;
   risk_score: number;
@@ -78,6 +111,7 @@ export interface SecurityDecision {
   request_id: string;
   policy_decision?: PolicyDecision;
   intent_analysis?: IntentAnalysis;
+  behavior_analysis?: BehaviorAnalysis;
   evaluated_at: string;
 }
 
@@ -94,6 +128,7 @@ export interface BatchSecurityDecisionResponse {
   blocked_count: number;
   highest_risk_score: number;
   decisions: SecurityDecision[];
+  behavior_analysis?: BehaviorAnalysis;
   blocked_action_index?: number;
   enforcement_mode: string;
   evaluated_at: string;
@@ -106,3 +141,4 @@ export interface SystemHealth {
   environment: string;
   timestamp?: string;
 }
+

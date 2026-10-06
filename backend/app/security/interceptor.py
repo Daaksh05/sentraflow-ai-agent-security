@@ -14,12 +14,15 @@ from app.core.logging import log_security_event
 from app.schemas.action import ActionContext, AgentAction, BatchAgentActionRequest
 from app.schemas.security import (
     BatchSecurityDecisionResponse,
+    BehaviorAnalysis,
     DecisionOutcome,
     EnforcementMode,
     RiskLevel,
     SecurityDecision,
+    TrajectoryClassification,
     calculate_risk_level,
 )
+from app.security.behavior_monitor import BehaviorMonitor, behavior_monitor
 from app.security.policy_engine import PolicyEngine
 
 logger = logging.getLogger("sentraflow.interceptor")
@@ -47,16 +50,18 @@ class ActionInterceptor(ABC):
 
 
 class DefaultActionInterceptor(ActionInterceptor):
-    """Standard security interceptor combining deterministic policies with AI intent analysis."""
+    """Standard security interceptor combining deterministic policies, AI intent, and behavioral trajectory analysis."""
 
     def __init__(
         self,
         policy_engine: Optional[PolicyEngine] = None,
         model_provider: Optional[ModelProvider] = None,
+        behavior_tracker: Optional[BehaviorMonitor] = None,
         enforcement_mode: Optional[str] = None,
     ):
         self.policy_engine = policy_engine or PolicyEngine()
         self.model_provider = model_provider
+        self.behavior_tracker = behavior_tracker or behavior_monitor
         self.enforcement_mode = enforcement_mode or settings.ENFORCEMENT_MODE
 
     async def intercept(
@@ -88,12 +93,21 @@ class DefaultActionInterceptor(ActionInterceptor):
             except Exception as exc:
                 logger.error(f"Error during AI intent analysis: {exc}", exc_info=True)
 
-        # Step 3: Combine into Final Security Decision with Strict Precedence
-        # Rule 1: Deterministic policy rule BLOCK is absolute (fail-secure boundary)
+        # Step 3: Evaluate Behavioral Trajectory Monitoring (Phase 3)
+        behavior_analysis = self.behavior_tracker.record_and_analyze(
+            action=action,
+            policy_decision=policy_decision,
+            intent_analysis=intent_analysis,
+            interim_decision=policy_decision.decision,
+            context=effective_context,
+        )
+
+        # Step 4: Decision Synthesis with Strict Precedence Hierarchy
+        # 1. Deterministic Policy Rule BLOCK is absolute (Fail-Secure Supremacy)
         is_policy_blocked = policy_decision.decision == DecisionOutcome.BLOCK
-        
-        # Rule 2: Nemotron contextual risk trigger (risk >= 80 or CRITICAL risk level)
-        is_ai_blocked = (
+
+        # 2. Contextual AI Critical Risk (Nemotron flags critical prompt injection/threat)
+        is_ai_critical = (
             intent_analysis is not None
             and (
                 intent_analysis.risk_score >= 80
@@ -102,18 +116,52 @@ class DefaultActionInterceptor(ActionInterceptor):
             )
         )
 
+        # 3. Behavioral Trajectory Critical Risk (e.g. data exfiltration / credential harvesting chain / repeated attacks)
+        is_behavior_critical = (
+            behavior_analysis.behavior_risk_score >= 80
+            or behavior_analysis.behavior_risk_level == RiskLevel.CRITICAL
+            or behavior_analysis.trajectory_classification in [
+                TrajectoryClassification.DATA_EXFILTRATION,
+                TrajectoryClassification.REPEATED_ATTACK,
+                TrajectoryClassification.CREDENTIAL_ACCESS,
+            ]
+        )
+
+        # 4. Behavioral Trajectory Elevated Suspicion (Task drift or escalating risk with high risk action)
+        is_behavior_elevated = (
+            behavior_analysis.behavior_risk_score >= 50
+            and (
+                (intent_analysis and intent_analysis.risk_score >= 50)
+                or (intent_analysis and intent_analysis.task_relevance < 0.35)
+                or policy_decision.risk_score >= 50
+            )
+        )
+
+        # Determine Natural Security Verdict
         if is_policy_blocked:
             natural_outcome = DecisionOutcome.BLOCK
             final_risk = policy_decision.risk_score
             if intent_analysis and intent_analysis.risk_score > final_risk:
                 final_risk = intent_analysis.risk_score
+            if behavior_analysis.behavior_risk_score > final_risk:
+                final_risk = behavior_analysis.behavior_risk_score
             final_reason = policy_decision.reason
-            source = "policy_engine" if not intent_analysis else f"policy+{intent_analysis.model_provider}"
-        elif is_ai_blocked:
+            source = "policy_engine"
+        elif is_ai_critical:
             natural_outcome = DecisionOutcome.BLOCK
-            final_risk = intent_analysis.risk_score
+            final_risk = max(intent_analysis.risk_score, behavior_analysis.behavior_risk_score)
             final_reason = f"Contextual AI risk detected: {intent_analysis.explanation}"
             source = f"policy+{intent_analysis.model_provider}"
+        elif is_behavior_critical:
+            natural_outcome = DecisionOutcome.BLOCK
+            final_risk = behavior_analysis.behavior_risk_score
+            final_reason = f"Behavioral alert ({behavior_analysis.trajectory_classification.value}): {behavior_analysis.explanation}"
+            source = "behavior_monitor"
+        elif is_behavior_elevated:
+            natural_outcome = DecisionOutcome.BLOCK
+            final_risk = behavior_analysis.behavior_risk_score
+            final_reason = f"Behavioral risk ({behavior_analysis.trajectory_classification.value}): {behavior_analysis.explanation}"
+            source = "behavior_monitor"
         else:
             natural_outcome = DecisionOutcome.ALLOW
             final_risk = max(
@@ -125,20 +173,22 @@ class DefaultActionInterceptor(ActionInterceptor):
                 if intent_analysis and intent_analysis.risk_score > policy_decision.risk_score
                 else policy_decision.reason
             )
-            source = f"policy+{intent_analysis.model_provider}" if intent_analysis else "placeholder"
+            source = (
+                f"policy+{intent_analysis.model_provider}+behavior"
+                if intent_analysis
+                else "policy+behavior"
+            )
 
-        # Apply Enforcement Mode handling
-        # In AUDIT_ONLY mode: actions are analyzed and logged without blocking execution
-        # But risk score telemetry is never masked or zeroed out
+        # Apply Enforcement Mode handling ('ENFORCE' vs 'AUDIT_ONLY')
         is_audit_mode = self.enforcement_mode.upper() == EnforcementMode.AUDIT_ONLY.value
         if is_audit_mode and natural_outcome == DecisionOutcome.BLOCK:
             final_outcome = DecisionOutcome.ALLOW
-            final_reason = f"[AUDIT_ONLY MODE] Policy violation flagged: {final_reason}"
+            final_reason = f"[AUDIT_ONLY MODE] Policy/Behavior violation flagged: {final_reason}"
             source = f"{source}:audit_override"
         else:
             final_outcome = natural_outcome
 
-        # Determine synthesized intent string
+        # Synthesized intent string
         intent_summary = (
             intent_analysis.detected_intent
             if intent_analysis
@@ -156,9 +206,10 @@ class DefaultActionInterceptor(ActionInterceptor):
             request_id=request_id,
             policy_decision=policy_decision,
             intent_analysis=intent_analysis,
+            behavior_analysis=behavior_analysis,
         )
 
-        # Step 4: Traceable Security Audit Log
+        # Step 5: Traceable Security Audit Log
         log_security_event(
             agent_id=action.agent_id,
             action=action.action,
@@ -171,13 +222,15 @@ class DefaultActionInterceptor(ActionInterceptor):
                 "task": action.task,
                 "analysis_source": decision.analysis_source,
                 "risk_level": decision.risk_level.value,
-                "task_relevance": intent_analysis.task_relevance if intent_analysis else None,
+                "behavior_risk_score": behavior_analysis.behavior_risk_score,
+                "trajectory_classification": behavior_analysis.trajectory_classification.value,
+                "behavior_indicators": behavior_analysis.behavior_indicators,
                 "enforcement_mode": self.enforcement_mode,
                 "natural_outcome": natural_outcome.value,
             },
         )
 
-        # Step 5: Database Persistence (non-blocking / error-tolerant)
+        # Step 6: Database Persistence (non-blocking / error-tolerant)
         try:
             await persist_security_audit_log(action, decision)
         except Exception as exc:
@@ -195,11 +248,14 @@ class DefaultActionInterceptor(ActionInterceptor):
         highest_risk = 0
         allowed_count = 0
         blocked_count = 0
+        last_behavior_analysis: Optional[BehaviorAnalysis] = None
 
         for idx, action in enumerate(batch_request.actions):
             action_context = action.action_context or batch_request.context
             decision = await self.intercept(action, action_context)
             decisions.append(decision)
+            if decision.behavior_analysis:
+                last_behavior_analysis = decision.behavior_analysis
 
             if decision.risk_score > highest_risk:
                 highest_risk = decision.risk_score
@@ -223,6 +279,7 @@ class DefaultActionInterceptor(ActionInterceptor):
             highest_risk_score=highest_risk,
             decisions=decisions,
             blocked_action_index=blocked_index,
+            behavior_analysis=last_behavior_analysis,
             enforcement_mode=self.enforcement_mode,
             evaluated_at=datetime.now(timezone.utc),
         )

@@ -1,31 +1,36 @@
-"""Security evaluation endpoints for agent actions."""
+"""Security evaluation endpoints for agent actions and session trajectory analysis."""
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from app.schemas.action import AgentAction, BatchAgentActionRequest
-from app.schemas.security import BatchSecurityDecisionResponse, SecurityDecision
+from app.schemas.security import (
+    BatchSecurityDecisionResponse,
+    BehaviorAnalysis,
+    SecurityDecision,
+)
+from app.security.behavior_monitor import behavior_monitor
 from app.services.security_service import SecurityService, security_service
 
-router = APIRouter(prefix="/analyze", tags=["Security Evaluation"])
+router = APIRouter(tags=["Security Evaluation"])
 
 
 @router.post(
-    "",
+    "/analyze",
     response_model=SecurityDecision,
     status_code=status.HTTP_200_OK,
     summary="Evaluate Agent Action",
-    description="Evaluates an autonomous AI agent action against deterministic security policies and AI intent analysis, returning an ALLOW or BLOCK decision.",
+    description="Evaluates an autonomous AI agent action against deterministic security policies, AI intent analysis, and behavioral trajectory monitoring.",
 )
 async def analyze_action(
     action: AgentAction,
     service: SecurityService = Depends(lambda: security_service),
 ) -> SecurityDecision:
-    """Interception endpoint: Analyzes requested agent action and returns structured decision."""
+    """Interception endpoint: Analyzes requested agent action and returns structured decision with behavioral telemetry."""
     decision = await service.evaluate_action(action, action.action_context)
     return decision
 
 
 @router.post(
-    "/batch",
+    "/analyze/batch",
     response_model=BatchSecurityDecisionResponse,
     status_code=status.HTTP_200_OK,
     summary="Evaluate Batch of Agent Actions",
@@ -37,3 +42,33 @@ async def analyze_action_batch(
 ) -> BatchSecurityDecisionResponse:
     """Batch interception endpoint for evaluating multi-step agent plans."""
     return await service.evaluate_batch(batch_request)
+
+
+@router.get(
+    "/sessions/{session_id}/trajectory",
+    response_model=BehaviorAnalysis,
+    status_code=status.HTTP_200_OK,
+    summary="Get Session Behavioral Trajectory",
+    description="Retrieves the multi-action behavioral trajectory and risk assessment for a specific agent session.",
+)
+async def get_session_trajectory(session_id: str) -> BehaviorAnalysis:
+    """Returns behavioral trajectory features and risk evaluation for a session."""
+    analysis = behavior_monitor.get_session_trajectory(session_id)
+    if not analysis:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No active trajectory history found for session '{session_id}'",
+        )
+    return analysis
+
+
+@router.delete(
+    "/sessions/{session_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Reset Session Trajectory",
+    description="Resets recorded behavioral action history for an agent session.",
+)
+async def reset_session_trajectory(session_id: str):
+    """Clears history for the given session."""
+    success = behavior_monitor.reset_session(session_id)
+    return {"status": "reset", "session_id": session_id, "found": success}

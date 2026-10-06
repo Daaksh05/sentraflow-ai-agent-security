@@ -1,8 +1,8 @@
-"""Schemas for Security Policies, Intent Analysis, and Security Decisions."""
+"""Schemas for Security Policies, Intent Analysis, Behavioral Trajectory, and Security Decisions."""
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 import uuid
 from pydantic import BaseModel, Field
 
@@ -27,6 +27,18 @@ class RiskLevel(str, Enum):
     MEDIUM = "MEDIUM"      # 21 - 50
     HIGH = "HIGH"          # 51 - 80
     CRITICAL = "CRITICAL"  # 81 - 100
+
+
+class TrajectoryClassification(str, Enum):
+    """Primary behavioral trajectory classification across an agent session."""
+    NORMAL = "NORMAL"
+    SUSPICIOUS = "SUSPICIOUS"
+    ESCALATING = "ESCALATING"
+    CREDENTIAL_ACCESS = "CREDENTIAL_ACCESS"
+    DATA_EXFILTRATION = "DATA_EXFILTRATION"
+    TASK_DRIFT = "TASK_DRIFT"
+    REPEATED_ATTACK = "REPEATED_ATTACK"
+    MIXED = "MIXED"
 
 
 def calculate_risk_level(score: int) -> RiskLevel:
@@ -63,7 +75,6 @@ class IntentAnalysis(BaseModel):
     model_provider: str = Field(default="nemotron", description="Model provider identifier")
     model_name: Optional[str] = Field(default=None, description="Specific model identifier used")
 
-    # Property alias for reasoning
     @property
     def intent(self) -> str:
         return self.detected_intent
@@ -73,20 +84,46 @@ class IntentAnalysis(BaseModel):
         return self.explanation
 
 
+class TrajectoryStep(BaseModel):
+    """Single chronological step recorded in an agent's behavioral session trajectory."""
+    step_number: int
+    action: str
+    resource: str
+    decision: str
+    risk_score: int
+    risk_level: RiskLevel
+    task_relevance: Optional[float] = None
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class BehaviorAnalysis(BaseModel):
+    """Behavioral monitoring and multi-action trajectory risk evaluation for an agent session."""
+    session_id: str = Field(..., description="Tracked session identifier")
+    behavior_risk_score: int = Field(default=0, ge=0, le=100, description="Session-level cumulative behavioral risk score (0-100)")
+    behavior_risk_level: RiskLevel = Field(default=RiskLevel.LOW, description="Behavioral risk tier")
+    trajectory_classification: TrajectoryClassification = Field(default=TrajectoryClassification.NORMAL, description="Primary trajectory pattern")
+    behavior_indicators: List[str] = Field(default_factory=list, description="Explainable behavioral risk signals triggered across the session")
+    explanation: str = Field(..., description="Human-readable justification of the behavioral risk assessment")
+    action_count: int = Field(default=1, description="Number of actions tracked in the current session window")
+    recent_trajectory: List[TrajectoryStep] = Field(default_factory=list, description="Recent chronological steps in the active session")
+    features: Optional[Dict[str, Any]] = Field(default=None, description="Internal behavioral telemetry features")
+
+
 class SecurityDecision(BaseModel):
-    """Unified security decision combining deterministic policy rules and AI intent analysis."""
+    """Unified security decision combining deterministic policy rules, AI intent analysis, and behavioral trajectory."""
     decision: DecisionOutcome = Field(..., description="Final security outcome: ALLOW or BLOCK", examples=["ALLOW"])
     risk_score: int = Field(..., ge=0, le=100, description="Composite risk score from 0 (safe) to 100 (critical)", examples=[12])
     risk_level: RiskLevel = Field(default=RiskLevel.LOW, description="Overall categorical risk level")
     intent: str = Field(..., description="Synthesized understanding of the agent's intent", examples=["Read test file to diagnose failing tests"])
     reason: str = Field(..., description="Auditable justification for the final decision", examples=["Action is within the configured workspace policy"])
-    analysis_source: str = Field(default="placeholder", description="Source of the security evaluation (e.g., 'policy_engine', 'policy+nemotron', 'mock')", examples=["policy+nemotron"])
+    analysis_source: str = Field(default="placeholder", description="Source of the security evaluation (e.g., 'policy_engine', 'policy+nemotron', 'policy+nemotron+behavior')", examples=["policy+nemotron+behavior"])
     enforcement_mode: str = Field(default="ENFORCE", description="Active enforcement mode when evaluated ('ENFORCE' or 'AUDIT_ONLY')")
     
     # Detailed sub-evaluation metadata
     request_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Traceable unique identifier for the evaluation event")
     policy_decision: Optional[PolicyDecision] = Field(default=None, description="Underlying policy engine decision")
     intent_analysis: Optional[IntentAnalysis] = Field(default=None, description="Underlying AI intent analysis from NVIDIA Nemotron")
+    behavior_analysis: Optional[BehaviorAnalysis] = Field(default=None, description="Underlying multi-action behavioral trajectory analysis")
     evaluated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Evaluation timestamp")
 
     def model_post_init(self, __context) -> None:
@@ -104,5 +141,6 @@ class BatchSecurityDecisionResponse(BaseModel):
     highest_risk_score: int = Field(..., ge=0, le=100, description="Highest risk score observed across all actions")
     decisions: List[SecurityDecision] = Field(..., description="Individual decisions for each submitted action in order")
     blocked_action_index: Optional[int] = Field(default=None, description="Index of the first blocked action, if any")
+    behavior_analysis: Optional[BehaviorAnalysis] = Field(default=None, description="Session-level aggregate behavioral trajectory analysis")
     enforcement_mode: str = Field(default="ENFORCE", description="Enforcement mode used during batch analysis")
     evaluated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Batch evaluation timestamp")
