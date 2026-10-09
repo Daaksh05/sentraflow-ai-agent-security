@@ -13,7 +13,12 @@ router = APIRouter(prefix="/analyze", tags=["Security Evaluation"])
     response_model=SecurityDecision,
     status_code=status.HTTP_200_OK,
     summary="Evaluate Agent Action",
-    description="Evaluates an autonomous AI agent action against security policies and AI intent analysis, returning an ALLOW or BLOCK decision.",
+    description=(
+        "Evaluates an autonomous AI agent action against security policies and AI intent "
+        "analysis, returning an ALLOW, REQUIRE_APPROVAL, ESCALATE, or BLOCK decision. "
+        "This evaluation does not itself pause or terminate an agent, grant approval, "
+        "or change permissions."
+    ),
 )
 async def analyze_action(
     action: AgentAction,

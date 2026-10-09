@@ -27,6 +27,10 @@ async def test_analyze_endpoint_contract_allow(client: AsyncClient):
     assert "analysis_source" in data
     assert "request_id" in data
     assert "evaluated_at" in data
+    assert data["response_mode"] == "decision"
+    assert data["response_outcome"] == "decision_returned_to_caller"
+    assert data["recommended_response"] == "ALLOW"
+    assert "policy_rationale" in data
 
 
 @pytest.mark.asyncio

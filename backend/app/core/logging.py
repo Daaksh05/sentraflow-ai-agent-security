@@ -64,6 +64,10 @@ def log_security_event(
     reason: str,
     request_id: str,
     extra_context: Optional[Dict[str, Any]] = None,
+    policy_rationale: Optional[str] = None,
+    response_mode: str = "decision",
+    response_outcome: str = "decision_returned_to_caller",
+    recommended_response: Optional[str] = None,
 ) -> None:
     """Emits a structured audit log entry for every intercepted agent action and security decision."""
     event_data = {
@@ -75,6 +79,10 @@ def log_security_event(
         "risk_score": risk_score,
         "reason": reason,
         "request_id": request_id,
+        "policy_rationale": policy_rationale,
+        "response_mode": response_mode,
+        "response_outcome": response_outcome,
+        "recommended_response": recommended_response,
         "extra_context": extra_context or {},
     }
     

@@ -1,8 +1,8 @@
 """Core configuration for SentraFlow backend application."""
 
 import os
-from typing import List, Union
-from pydantic import Field
+from typing import List, Literal, Union
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -51,6 +51,29 @@ class Settings(BaseSettings):
         default="https://integrate.api.nvidia.com/v1",
         description="NVIDIA NIM or API base URL"
     )
+
+    # Adaptive response recommendations
+    ADAPTIVE_RESPONSE_MODE: Literal["decision", "audit_only"] = Field(
+        default="decision",
+        description="Return risk-based decisions or record recommendations without applying them",
+    )
+    REQUIRE_APPROVAL_RISK_THRESHOLD: int = Field(default=30, ge=0, le=100)
+    ESCALATE_RISK_THRESHOLD: int = Field(default=60, ge=0, le=100)
+    BLOCK_RISK_THRESHOLD: int = Field(default=80, ge=0, le=100)
+
+    @model_validator(mode="after")
+    def validate_response_thresholds(self) -> "Settings":
+        if not (
+            self.REQUIRE_APPROVAL_RISK_THRESHOLD
+            < self.ESCALATE_RISK_THRESHOLD
+            < self.BLOCK_RISK_THRESHOLD
+        ):
+            raise ValueError(
+                "Response thresholds must satisfy "
+                "REQUIRE_APPROVAL_RISK_THRESHOLD < ESCALATE_RISK_THRESHOLD "
+                "< BLOCK_RISK_THRESHOLD"
+            )
+        return self
 
 
 settings = Settings()

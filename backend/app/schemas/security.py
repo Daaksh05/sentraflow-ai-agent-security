@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import List, Optional
+from typing import List, Literal, Optional
 import uuid
 from pydantic import BaseModel, Field
 
@@ -38,11 +38,27 @@ class IntentAnalysis(BaseModel):
 
 class SecurityDecision(BaseModel):
     """Unified security decision combining deterministic policy rules and AI intent analysis."""
-    decision: DecisionOutcome = Field(..., description="Final security outcome: ALLOW or BLOCK", examples=["ALLOW"])
+    decision: DecisionOutcome = Field(..., description="Final response decision returned by the security evaluation", examples=["ALLOW"])
     risk_score: int = Field(..., ge=0, le=100, description="Composite risk score from 0 (safe) to 100 (critical)", examples=[12])
     intent: str = Field(..., description="Synthesized understanding of the agent's intent", examples=["Read test file to diagnose failing tests"])
     reason: str = Field(..., description="Auditable justification for the final decision", examples=["Action is within the configured workspace policy"])
     analysis_source: str = Field(default="placeholder", description="Source of the security evaluation (e.g., 'placeholder', 'policy+nemotron', 'policy_only')", examples=["placeholder"])
+    response_mode: Literal["decision", "audit_only"] = Field(
+        default="decision",
+        description="Whether the adaptive recommendation is returned as the decision or recorded for audit only",
+    )
+    response_outcome: str = Field(
+        default="decision_returned_to_caller",
+        description="What the evaluation returned; this does not claim runtime enforcement",
+    )
+    recommended_response: Optional[DecisionOutcome] = Field(
+        default=None,
+        description="Risk-based response recommendation, which may differ from decision in audit-only mode",
+    )
+    policy_rationale: Optional[str] = Field(
+        default=None,
+        description="Rationale for the adaptive response recommendation",
+    )
     
     # Detailed sub-evaluation metadata
     request_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Traceable unique identifier for the evaluation event")
