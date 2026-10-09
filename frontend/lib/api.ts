@@ -1,4 +1,10 @@
-import { AgentAction, SecurityDecision, SystemHealth } from "@/types/security";
+import {
+  AgentAction,
+  BatchAgentActionRequest,
+  BatchSecurityDecisionResponse,
+  SecurityDecision,
+  SystemHealth,
+} from "@/types/security";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -24,6 +30,25 @@ export async function analyzeAgentAction(action: AgentAction): Promise<SecurityD
   if (!response.ok) {
     const errorBody = await response.text();
     throw new Error(`Security evaluation failed (${response.status}): ${errorBody}`);
+  }
+
+  return response.json();
+}
+
+export async function analyzeBatchActions(
+  batchRequest: BatchAgentActionRequest
+): Promise<BatchSecurityDecisionResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/analyze/batch`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(batchRequest),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Batch security evaluation failed (${response.status}): ${errorBody}`);
   }
 
   return response.json();
