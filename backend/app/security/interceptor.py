@@ -330,7 +330,11 @@ class DefaultActionInterceptor(ActionInterceptor):
         try:
             await persist_security_audit_log(action, decision)
         except Exception as exc:
-            logger.debug(f"Audit DB persistence skipped: {exc}")
+            logger.warning(
+                "Audit persistence raised an unexpected error for request_id=%s (%s)",
+                request_id,
+                type(exc).__name__,
+            )
 
         return decision
 

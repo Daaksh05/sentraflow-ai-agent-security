@@ -85,7 +85,10 @@ async def init_db() -> bool:
         logger.info("Database tables verified and initialized successfully.")
         return True
     except Exception as exc:
-        logger.warning(f"Database initialization skipped or deferred: {exc}")
+        logger.warning(
+            "Database initialization failed (%s); tables are unavailable",
+            type(exc).__name__,
+        )
         return False
 
 
@@ -139,7 +142,18 @@ async def persist_security_audit_log(
             return audit_record
 
     except Exception as exc:
+        if session is not None:
+            try:
+                await session.rollback()
+            except Exception as rollback_exc:
+                logger.warning(
+                    "Could not roll back failed audit transaction for request_id=%s (%s)",
+                    decision.request_id,
+                    type(rollback_exc).__name__,
+                )
         logger.warning(
-            f"Could not persist audit log for request_id={decision.request_id} to database: {exc}"
+            "Could not persist audit log for request_id=%s (%s)",
+            decision.request_id,
+            type(exc).__name__,
         )
         return None

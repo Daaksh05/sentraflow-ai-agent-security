@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.router import api_router
 from app.core.config import settings
+from app.core.database import engine, init_db
 from app.core.logging import logger, setup_logging
 
 
@@ -19,8 +20,27 @@ async def lifespan(app: FastAPI):
     logger.info(
         f"Starting {settings.PROJECT_NAME} v{settings.VERSION} in {settings.ENVIRONMENT} mode"
     )
-    yield
-    logger.info(f"Shutting down {settings.PROJECT_NAME}")
+    try:
+        try:
+            database_initialized = await init_db()
+        except Exception as exc:
+            database_initialized = False
+            logger.error(
+                "Database initialization raised %s; continuing without database persistence",
+                type(exc).__name__,
+            )
+        if not database_initialized:
+            logger.warning(
+                "Database initialization incomplete; continuing without database persistence"
+            )
+
+        yield
+    finally:
+        try:
+            await engine.dispose()
+        except Exception as exc:
+            logger.warning("Database engine disposal failed (%s)", type(exc).__name__)
+        logger.info(f"Shutting down {settings.PROJECT_NAME}")
 
 
 app = FastAPI(
