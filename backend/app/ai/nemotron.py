@@ -133,9 +133,9 @@ class NemotronProvider(ModelProvider):
         base_url: Optional[str] = None,
         model_name: Optional[str] = None,
     ):
-        self._api_key = api_key or settings.NVIDIA_API_KEY
-        self._base_url = (base_url or settings.NVIDIA_BASE_URL).rstrip("/")
-        self._model_name = model_name or settings.NVIDIA_MODEL
+        self._api_key = api_key if api_key is not None else settings.NVIDIA_API_KEY
+        self._base_url = (base_url if base_url is not None else settings.NVIDIA_BASE_URL).rstrip("/")
+        self._model_name = model_name if model_name is not None else settings.NVIDIA_MODEL
 
     @property
     def provider_name(self) -> str:
