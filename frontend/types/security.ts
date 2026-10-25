@@ -142,3 +142,49 @@ export interface SystemHealth {
   timestamp?: string;
 }
 
+export interface SynthesizedRule {
+  rule_id: string;
+  name: string;
+  resource_pattern: string;
+  action_pattern: string;
+  decision: DecisionOutcome;
+  risk_score: number;
+  reason: string;
+  explanation?: string;
+}
+
+export interface PolicySynthesizeResponse {
+  success: boolean;
+  prompt: string;
+  rule: SynthesizedRule;
+  activated: boolean;
+  total_active_rules: number;
+  model_name: string;
+  validation_status: string;
+}
+
+export interface AttackScenario {
+  id: string;
+  name: string;
+  category: string;
+  severity: string;
+  owasp_tag: string;
+  mitre_tactic: string;
+  description: string;
+  adversarial_technique: string;
+  action: AgentAction;
+}
+
+export interface RedTeamRunResponse {
+  scenario_id: string;
+  scenario_name: string;
+  owasp_tag: string;
+  mitre_tactic: string;
+  attack_technique: string;
+  action_submitted: AgentAction;
+  decision: SecurityDecision;
+  attack_thwarted: boolean;
+  defense_stage: string;
+  explanation: string;
+}
+
